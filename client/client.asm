@@ -23,10 +23,10 @@ _start:
 
     call connect_server             ; Se connecter au serveur
 
-    mov byte [send_buffer], 65      ; A dans le buffer
+    call fill                       ; Remplir le buffer
 
-    mov r12, 26                     ; compteur 26 lettres
-    call .loop                      ; Lancer la boucle
+    mov rbx, 1000000                ; 1000000 fois
+    call send_rbx_times             ; Envoyer les 27 chars
 
     call close_connection           ; Fermer la connexion
     
@@ -35,20 +35,34 @@ _start:
     syscall
 
 
-.loop:
-    cmp r12, 0                      ; Si on a finit la boucle
-    je .end_loop                    ; On sort de la boucle
-    mov rdx, 1                      ; On va envoyer qu'un seul char
-    call send_data                  ; Envoyer les données
-    inc byte [send_buffer]          ; On passe à la lettre suivante
-    dec r12
-    jmp .loop
-    
-.end_loop:
-    mov byte [send_buffer], 10      ; \n dans le buffer
-    mov rdx, 1                      ; On va envoyer qu'un seul char
-    call send_data                  ; Dernier envoi pour le retour à la ligne
+send_rbx_times:
+    mov rdx, 27
 
+.loop:
+    cmp rbx, 0                      ; As-t-on envoyé le message RBX fois ?
+    je .end_loop                    ; Si oui, alors on sort
+    call send_data                  ; On envoie le message
+    dec rbx                         ; RBX--
+    jmp .loop                       ; Refaire la boucle
+
+.end_loop:
+    ret
+
+
+
+; Remplir le buffer
+fill:
+    xor rcx, rcx                    ; Index i = 0
+    mov al, 'A'                     ; Caractère courant = 'A' (65)
+
+.loop_fill:
+    mov [send_buffer + rcx], al     ; send_buffer[i] = caractère
+    inc al                          ; Lettre suivante ('A' -> 'B' -> ...)
+    inc rcx                         ; i++
+    cmp rcx, 26                     ; A-t-on écrit 26 lettres ?
+    jl .loop_fill                   ; Tant que i < 26, on continue
+
+    mov byte [send_buffer + 26], 10 ; Ajoute '\n' à l'index 26
     ret
 
 create_socket:
@@ -78,15 +92,26 @@ connect_server:
 
 
 send_data:
+    mov rsi, send_buffer            ; Initialiser le pointeur avant la boucle
+
+.send_loop:
     mov rax, 1                      ; sys_write
-    mov rdi, [sockfd]               ; sockfd
-    mov rsi, send_buffer            ; Votre tampon dans .bss
+    mov rdi, [sockfd]               ; descripteur de fichier du socket
     syscall                         ; RAX = nombre d'octets reçus (0 si connexion fermée)
 
     cmp rax, 0
     je error_connect                ; Si RAX = 0, la connexion est fermée
 
+    cmp rax, rdx
+    jl .partially_sent_data         ; Si RAX < RDX, on essaye d'envoyer le reste des données
+
     ret
+
+.partially_sent_data:
+    add rsi, rax                    ; Avancer le pointeur de RAX octets
+    sub rdx, rax                    ; Réduire la taille restante de RAX octets
+    jmp send_data                   ; Recommencer l'envoi
+
 
 receive_data:
     mov rax, 0                      ; sys_read
