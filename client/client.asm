@@ -26,7 +26,7 @@ _start:
     call fill                       ; Remplir le buffer
 
     mov rbx, 1000000                ; 1000000 fois
-    call send_rbx_times             ; Envoyer les 27 chars
+    call send_rbx_times             ; Envoyer le message rbx fois
 
     call close_connection           ; Fermer la connexion
     
@@ -36,7 +36,7 @@ _start:
 
 
 send_rbx_times:
-    mov rdx, 27
+    mov rdx, 27                     ; On envoie 27 chars
 
 .loop:
     cmp rbx, 0                      ; As-t-on envoyé le message RBX fois ?
@@ -110,7 +110,7 @@ send_data:
 .partially_sent_data:
     add rsi, rax                    ; Avancer le pointeur de RAX octets
     sub rdx, rax                    ; Réduire la taille restante de RAX octets
-    jmp send_data                   ; Recommencer l'envoi
+    jmp .send_loop                  ; Recommencer l'envoi
 
 
 receive_data:
@@ -121,7 +121,8 @@ receive_data:
     syscall                         ; RAX = nombre d'octets reçus (0 si connexion fermée)
 
     cmp rax, 0
-    je error_connect                ; Si RAX = 0, la connexion est fermée
+    je close_connection             ; Si RAX = 0, la connexion est fermée
+    jl error_connect                ; Si RAX < 0, une erreur est survenue
 
     ret
 
