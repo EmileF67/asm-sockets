@@ -24,10 +24,8 @@ _start:
     call connect_server             ; Se connecter au serveur
 
     mov byte [send_buffer], 65      ; A dans le buffer
-    ; mov byte [send_buffer+1], 10    ; \n dans le buffer
 
     mov r12, 26                     ; compteur 26 lettres
-    ; mov r13, 1000000      ; 1000000 fois
     call .loop                      ; Lancer la boucle
 
     call close_connection           ; Fermer la connexion
@@ -47,16 +45,9 @@ _start:
     jmp .loop
     
 .end_loop:
-
     mov byte [send_buffer], 10      ; \n dans le buffer
     mov rdx, 1                      ; On va envoyer qu'un seul char
     call send_data                  ; Dernier envoi pour le retour à la ligne
-
-    ; dec r13         ; décrémente r131
-    ; mov r12, 26     ; on remet le compteur de loop à 0
-    ; mov byte [send_buffer], 65  ; A dans le buffer
-    ; cmp r13, 0      ; si r13 est pas nul
-    ; jne .loop       ; on refait la loop
 
     ret
 
@@ -90,7 +81,6 @@ send_data:
     mov rax, 1                      ; sys_write
     mov rdi, [sockfd]               ; sockfd
     mov rsi, send_buffer            ; Votre tampon dans .bss
-    ; mov rdx, 4096                   ; Taille à envoyer
     syscall                         ; RAX = nombre d'octets reçus (0 si connexion fermée)
 
     cmp rax, 0
