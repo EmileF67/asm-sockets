@@ -100,7 +100,7 @@ send_data:
     syscall                         ; RAX = nombre d'octets reçus (0 si connexion fermée)
 
     cmp rax, 0
-    je error_connect                ; Si RAX = 0, la connexion est fermée
+    jle error_connect               ; Si RAX <= 0, la connexion est fermée
 
     cmp rax, rdx
     jl .partially_sent_data         ; Si RAX < RDX, on essaye d'envoyer le reste des données
